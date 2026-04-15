@@ -658,7 +658,7 @@
           <div class="brand-sub" id="marketSub">Norway focus with crypto overlay</div>
         </div>
       </div>
-      <img src="https://www.bi.no/globalassets/images/logo/bi_logo_white.png" alt="BI" />
+      <div class="logo-text" aria-label="BI">BI</div>
     </div>
 
     <div class="ticker-window">
@@ -1082,30 +1082,49 @@
       const signals = [];
       currentCore().forEach(item => {
         const q = state.quotes[item.symbol];
-        if (!q || q.changePct === null) return;
+        if (!q || q.changePct == null || Number.isNaN(q.changePct)) return;
         if (q.changePct >= 2) signals.push({
           title: `${item.label} accelerating`,
-          body: `${item.label} is up ${q.changePct.toFixed(2)}% and leading the Norwegian core board.`
+          body: `${item.label} is up ${q.changePct.toFixed(2)}% and leading the active core board.`
         });
         else if (q.changePct <= -2) signals.push({
           title: `${item.label} under pressure`,
           body: `${item.label} is down ${Math.abs(q.changePct).toFixed(2)}%, which makes it the weakest core name right now.`
         });
       });
+
       const btc = state.quotes.BTCUSD;
       const eth = state.quotes.ETHUSD;
-      if (btc?.changePct !== null && eth?.changePct !== null) {
+      const btcReady = !!btc && btc.changePct != null && !Number.isNaN(btc.changePct);
+      const ethReady = !!eth && eth.changePct != null && !Number.isNaN(eth.changePct);
+
+      if (btcReady && ethReady) {
         signals.push({
           title: 'Crypto tone check',
           body: `Bitcoin is ${btc.changePct >= 0 ? 'supportive' : 'soft'} at ${formatChange(btc.changePct)} while Ethereum sits at ${formatChange(eth.changePct)}.`
         });
-      }
-      if (state.movers[0]) {
+      } else if (btcReady) {
         signals.push({
-          title: 'US risk appetite',
-          body: `${state.movers[0].symbol} tops the gainers feed with ${formatChange(parsePercent(state.movers[0].changesPercentage))}.`
+          title: 'Bitcoin tone check',
+          body: `Bitcoin is currently ${btc.changePct >= 0 ? 'firmer' : 'softer'} at ${formatChange(btc.changePct)}.`
         });
       }
+
+      if (state.movers[0]) {
+        const moverChange = parsePercent(state.movers[0].changesPercentage);
+        signals.push({
+          title: 'US risk appetite',
+          body: `${state.movers[0].symbol} tops the gainers feed with ${formatChange(moverChange)}.`
+        });
+      }
+
+      if (!signals.length) {
+        signals.push({
+          title: 'Awaiting live feed',
+          body: 'The dashboard is connected, but live values are still loading for the current market set.'
+        });
+      }
+
       return signals.slice(0, 4);
     }
 
